@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+// map.tsx
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   GoogleMap,
   Marker,
@@ -8,6 +9,11 @@ import {
 } from "@react-google-maps/api";
 import Places from "./places";
 import Distance from "./distance";
+import LatLongInput from "./latlong"
+import { useGpsData } from "./gpsData"; // Import the custom hook
+import { useUserLocation } from "./useUserLocation";
+import GpsList from "./gpsList"; // Adjust the path as necessary
+
 
 type LatLngLiteral = google.maps.LatLngLiteral;
 type DirectionsResult = google.maps.DirectionsResult;
@@ -32,6 +38,15 @@ export default function Map() {
   const onLoad = useCallback((map) => (mapRef.current = map), []);
   const houses = useMemo(() => generateHouses(center), [center]);
 
+
+  const gpsData = useGpsData();
+  const userLocation = useUserLocation(); // Use the custom hook
+
+  const focusOnLocation = (location: LatLngLiteral) => {
+    mapRef.current?.panTo(location);
+    //mapRef.current?.setZoom(15); // Optionally set a closer zoom level
+  };
+
   const fetchDirections = (house: LatLngLiteral) => {
     if (!office) return;
 
@@ -50,18 +65,36 @@ export default function Map() {
     );
   };
 
+  const handleCenterOnUser = () => {
+    if (userLocation && mapRef.current) {
+      mapRef.current.panTo(userLocation);
+      setOffice(userLocation); // Optionally set it as the office location
+    }
+  };
+
   return (
     <div className="container">
       <div className="controls">
-        <h1>Commute?</h1>
-        <Places
+        <h1>Find My GPS?</h1>
+        {/* <LatLongInput
+          setOffice={(position) => {
+            setOffice(position);
+            mapRef.current?.panTo(position);
+          }}
+        /> */}
+        {/* <Places
           setOffice={(position) => {
             setOffice(position);
             mapRef.current?.panTo(position);
           }}
         />
-        {!office && <p>Enter the address of your office.</p>}
+        {!office && <p>Enter the address of your office.</p>} */}
+        <button onClick={handleCenterOnUser}>Center Map on My Location</button>
+
         {directions && <Distance leg={directions.routes[0].legs[0]} />}
+        <GpsList gpsData={gpsData} focusOnLocation={focusOnLocation} />
+
+     
       </div>
       <div className="map">
         <GoogleMap
@@ -83,6 +116,22 @@ export default function Map() {
               }}
             />
           )}
+              <MarkerClusterer>
+                {(clusterer) =>
+                  gpsData.map((data, index) => (
+                    <Marker
+                      key={index}
+                      position={{ lat: data.lat, lng: data.lng }}
+                      label={{
+                        text: data.name, // The text to display
+                        color: "white", // Text color
+                        fontSize: "12px" // Text size
+                      }}
+                      clusterer={clusterer}
+                    />
+                  ))
+                }
+              </MarkerClusterer>
 
           {office && (
             <>
@@ -91,7 +140,7 @@ export default function Map() {
                 icon="https://developers.google.com/maps/documentation/javascript/examples/full/images/beachflag.png"
               />
 
-              <MarkerClusterer>
+              {/* <MarkerClusterer>
                 {(clusterer) =>
                   houses.map((house) => (
                     <Marker
@@ -104,7 +153,7 @@ export default function Map() {
                     />
                   ))
                 }
-              </MarkerClusterer>
+              </MarkerClusterer> */}
 
               <Circle center={office} radius={15000} options={closeOptions} />
               <Circle center={office} radius={30000} options={middleOptions} />

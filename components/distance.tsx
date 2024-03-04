@@ -1,3 +1,4 @@
+// distance.tsk
 const commutesPerYear = 260 * 2;
 const litresPerKM = 10 / 100;
 const gasLitreCost = 1.5;
